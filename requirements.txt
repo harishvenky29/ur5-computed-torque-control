@@ -1,0 +1,12 @@
+# MATLAB products needed to run this project.
+# MATLAB has no pip: install these with the MathWorks installer or
+# Home > Add-Ons > Get Add-Ons inside MATLAB.
+# Run check_requirements.m to verify your installation.
+
+MATLAB >= R2022a                # name=value syntax, exportgraphics GIF append
+Simulink                        # closed-loop models ur5_pid.slx / ur5_ctc.slx
+Robotics System Toolbox         # loadrobot, inverseKinematics, quinticpolytraj,
+                                # Forward/Inverse Dynamics Simulink blocks
+
+# Optional
+Simscape Multibody              # only for the optional 3D model ur5_plant.slx in step1
