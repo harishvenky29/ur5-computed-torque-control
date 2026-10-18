@@ -118,8 +118,3 @@ mass) or **robust sliding-mode control** would be the natural next comparison.
 counts, so a filter or Kalman observer is needed.
 - Constant-orientation pick-and-place only. Obstacle-aware planning (e.g. `manipulatorRRT`) is an obvious extension.
 - Simulation only. The controller could be deployed via Simulink Coder or ROS 2 for hardware or Gazebo testing.
-
-## Author
-
-**Harish Venkatesan M R**, MSc Intelligent Robotics, University of York
-[GitHub](https://github.com/harishvenky29) · [LinkedIn](https://www.linkedin.com/in/harish-venkatesan-m-r-833173191)
