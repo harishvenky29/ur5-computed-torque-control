@@ -4,7 +4,7 @@ Simulation of a 6-DOF Universal Robots UR5 performing a pick-and-place task, com
 **computed-torque (model-based) controller** against a **tuned independent-joint PID** baseline,
 including a robustness study under model error and sensor noise.
 
-![Pick-and-place animation](arm_pick_place.gif)
+![Pick-and-place animation](figures/arm_pick_place.gif)
 
 ## Key result
 
@@ -23,21 +23,32 @@ closed-loop bandwidth.
 numerical. This row is a sanity check, not a performance claim. The mismatch rows are
 the meaningful comparison.
 
-![RMS error by scenario](robustness_rms.png)
-![Worst-case tracking error](robustness_worst_case.png)
+<p align="center">
+  <img src="figures/robustness_rms.png" alt="RMS error by scenario" width="49%">
+  <img src="figures/robustness_worst_case.png" alt="Worst-case tracking error" width="49%">
+</p>
 
 ## What the project covers
 
 | Stage | Script | What it does |
 |---|---|---|
-| 1. Model | `step1_model_arm.m` | UR5 from DH parameters (no toolbox) and as a `rigidBodyTree`; FK sanity check, mass matrix check, workspace plot |
-| 2. Plan | `step2_plan_trajectory.m` | 8 Cartesian pick-and-place waypoints, numerical IK with seed chaining and angle unwrapping, quintic joint trajectory at 1 kHz, speed and torque feasibility checks |
-| 3. Control | `step3_compare_nominal.m` | Builds both Simulink models programmatically and compares PID vs computed torque on the nominal arm |
-| 4. Robustness | `step4_robustness_study.m` | Re-runs both controllers with payload, mass error and sensor noise; writes the table above and figures |
+| 1. Model | `src/step1_model_arm.m` | UR5 from DH parameters (no toolbox) and as a `rigidBodyTree`; FK sanity check, mass matrix check, workspace plot |
+| 2. Plan | `src/step2_plan_trajectory.m` | 8 Cartesian pick-and-place waypoints, numerical IK with seed chaining and angle unwrapping, quintic joint trajectory at 1 kHz, speed and torque feasibility checks |
+| 3. Control | `src/step3_compare_nominal.m` | Builds both Simulink models programmatically and compares PID vs computed torque on the nominal arm |
+| 4. Robustness | `src/step4_robustness_study.m` | Re-runs both controllers with payload, mass error and sensor noise; writes the table above and figures |
 
-Supporting functions: `build_ur5_model.m` (builds `ur5_pid.slx` / `ur5_ctc.slx`),
+Supporting functions in `src/`: `build_ur5_model.m` (builds `models/ur5_pid.slx` / `models/ur5_ctc.slx`),
 `simulate_ur5.m` (runs and scores one simulation), `ur5_params.m`, `dh_fk.m`,
 `check_requirements.m` (verifies toolboxes).
+
+```
+├── README.md
+├── requirements.txt
+├── run_all.m
+├── src/        MATLAB scripts and functions
+├── models/     Simulink models (ur5_pid.slx, ur5_ctc.slx)
+└── figures/    plots, animation and results table
+```
 
 ## Method
 
@@ -47,12 +58,16 @@ joint speed and angle.
 
 **PID baseline.** Per-joint gains tuned from the diagonal of the mass matrix at the start pose:
 
-$$\tau = K_p e + K_d \dot e + K_i \textstyle\int e, \quad K_p = M_{jj}\omega_n^2,\; K_d = 2\zeta\omega_n M_{jj},\; K_i = K_p\,\omega_n/10$$
+```math
+\tau = K_p e + K_d \dot e + K_i \textstyle\int e, \quad K_p = M_{jj}\omega_n^2,\quad K_d = 2\zeta\omega_n M_{jj},\quad K_i = K_p\,\omega_n/10
+```
 
 **Computed torque.** Uses the arm's model at every step (the *Inverse Dynamics* block) to cancel
 the nonlinear dynamics:
 
-$$\tau = \hat M(q)\,\big(\ddot q_{ref} + K_p e + K_d \dot e + K_i \textstyle\int e\big) + \hat C(q,\dot q)\dot q + \hat G(q)$$
+```math
+\tau = \hat M(q)\,\big(\ddot q_{ref} + K_p e + K_d \dot e + K_i \textstyle\int e\big) + \hat C(q,\dot q)\dot q + \hat G(q)
+```
 
 **Fair comparison.** Both controllers are designed for the same nominal closed-loop
 polynomial $s^3 + 2\zeta\omega_n s^2 + \omega_n^2 s + \omega_n^3/10$ with $\omega_n = 20$ rad/s and $\zeta = 1$.
@@ -60,13 +75,20 @@ The controller always uses the *nominal* model; only the simulated plant is chan
 
 ## Findings
 
+**Nominal comparison (model = plant):**
+
+![Nominal comparison: end-effector tracking](figures/compare_nominal_ee.png)
+![Nominal comparison: joint tracking](figures/compare_nominal_joints.png)
+
 - **PID error is dominated by gravity and coupling.** The shoulder and elbow (J2, J3) lag during fast
-  moves even with a perfect model, because one fixed gain cannot match a configuration-dependent inertia.
+moves even with a perfect model, because one fixed gain cannot match a configuration-dependent inertia.
 - **Computed torque degrades gracefully.** Error rose from almost nothing to 2.6 mm as the model became
-  wrong, while PID was already at 5 mm with a perfect model. Final settling error was about 11× lower (0.07 vs 0.84 mm).
+wrong, while PID was already at 5 mm with a perfect model. Final settling error was about 11× lower (0.07 vs 0.84 mm).
 - **Noise trade-off.** Encoder noise of about 0.006° barely changed tracking, but raised torque jitter
-  about 30× for PID and 50× for computed torque. The model-based law scales feedback by $\hat M(q)$, which
-  amplifies measurement noise on the heavy joints. On real hardware this calls for velocity filtering or an observer.
+about 30× for PID and 50× for computed torque. The model-based law scales feedback by $\hat M(q)$, which
+amplifies measurement noise on the heavy joints. On real hardware this calls for velocity filtering or an observer.
+
+Full results table: [`figures/results_table.md`](figures/results_table.md)
 
 ## Running it
 
@@ -80,8 +102,8 @@ The controller always uses the *nominal* model; only the simulated plant is chan
 | Simscape Multibody *(optional)* | only the optional 3D model in step 1 |
 
 ```matlab
-check_requirements   % verifies your installation
-run_all              % runs step1 -> step4 in order, about 6-8 minutes
+check_requirements % verifies your installation
+run_all % runs step1 -> step4 in order, about 6-8 minutes
 ```
 
 Or run `step1_...` to `step4_...` individually in order. Each one saves the `.mat` file the next step needs.
@@ -89,11 +111,11 @@ Or run `step1_...` to `step4_...` individually in order. Each one saves the `.ma
 ## Limitations and next steps
 
 - Rigid joints with no friction, backlash or motor dynamics. Adding a joint-friction model would
-  shrink the gap between the two controllers in a realistic way.
+shrink the gap between the two controllers in a realistic way.
 - The payload is unknown to the controller. **Adaptive computed torque** (online estimation of payload
-  mass) or **robust sliding-mode control** would be the natural next comparison.
+mass) or **robust sliding-mode control** would be the natural next comparison.
 - Velocity is taken from the true state plus noise. A real implementation would differentiate encoder
-  counts, so a filter or Kalman observer is needed.
+counts, so a filter or Kalman observer is needed.
 - Constant-orientation pick-and-place only. Obstacle-aware planning (e.g. `manipulatorRRT`) is an obvious extension.
 - Simulation only. The controller could be deployed via Simulink Coder or ROS 2 for hardware or Gazebo testing.
 
