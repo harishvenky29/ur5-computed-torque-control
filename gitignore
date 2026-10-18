@@ -1,0 +1,14 @@
+# Simulink build artefacts
+slprj/
+*.slxc
+*_grt_rtw/
+*_ert_rtw/
+codegen/
+
+# MATLAB autosave / temp
+*.asv
+*.autosave
+*.m~
+
+# Generated data (reproduced by run_all.m)
+*.mat
